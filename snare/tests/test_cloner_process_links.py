@@ -12,7 +12,7 @@ class TestProcessLinks(unittest.TestCase):
         self.level = 0
         self.max_depth = sys.maxsize
         self.loop = asyncio.new_event_loop()
-        self.css_validate = "false"
+        self.css_validate = False
         self.handler = Cloner(self.root, self.max_depth, self.css_validate)
         self.expected_content = None
         self.return_content = None
@@ -49,7 +49,10 @@ class TestProcessLinks(unittest.TestCase):
 
         self.loop.run_until_complete(test())
         self.assertEqual(self.return_content, "/foo/путь/")
-        self.assertEqual(yarl.URL(self.return_url).human_repr(), self.expected_content)
+        if self.return_url:
+            self.assertEqual(yarl.URL(self.return_url).human_repr(), self.expected_content)
+        else:
+            raise AssertionError("Empty URL returned!\nExpected URL: " + self.expected_content)
         self.assertEqual(self.return_level, self.level + 1)
 
         self.handler.moved_root = yarl.URL("http://example2.com")
@@ -57,7 +60,10 @@ class TestProcessLinks(unittest.TestCase):
 
         self.loop.run_until_complete(test())
         self.assertEqual(self.return_content, "/foo/путь/")
-        self.assertEqual(yarl.URL(self.return_url).human_repr(), self.expected_content)
+        if self.return_url:
+            self.assertEqual(yarl.URL(self.return_url).human_repr(), self.expected_content)
+        else:
+            raise AssertionError("Empty URL returned!\nExpected URL: " + self.expected_content)
         self.assertEqual(self.return_level, self.level + 1)
 
     def test_process_link_absolute(self):

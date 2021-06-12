@@ -114,15 +114,6 @@ def parse_timeout(timeout):
     return result
 
 
-def str_to_bool(v):
-    if v.lower() == "true":
-        return True
-    elif v.lower() == "false":
-        return False
-    else:
-        raise argparse.ArgumentTypeError("Boolean value expected")
-
-
 def print_color(msg, mode="INFO", end="\n"):
     colors = {
         "INFO": "\033[97m",  # white

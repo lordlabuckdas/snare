@@ -28,6 +28,7 @@ Getting started
 
 - You need Python3.6 to run SNARE
 - This was tested with a recent Ubuntu based Linux.
+- [Optional] Firefox and Geckodriver for headless browsing using Selenium
 
 #### Steps to setup
 
