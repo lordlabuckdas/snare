@@ -14,7 +14,6 @@ from bs4 import BeautifulSoup
 from seleniumwire import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.common.exceptions import InvalidArgumentException, TimeoutException
-import time
 from snare.utils.snare_helpers import print_color
 
 animation = "|/-\\"
@@ -161,6 +160,7 @@ class Cloner(object):
         headers = []
         content_type = None
         try:
+            # TODO: timeout from CLI param
             response = await session.get(
                 current_url,
                 headers={
@@ -194,7 +194,8 @@ class Cloner(object):
             self.logger.error("Malformed URL:" + str(current_url))
         except Exception as err:
             self.logger.error(err)
-        time.sleep(1)
+        # TODO: timeout from CLI param
+        await asyncio.sleep(1)
         data = driver.page_source
         for request in driver.requests:
             if request.response and request.response.headers and str(current_url) in request.url:
