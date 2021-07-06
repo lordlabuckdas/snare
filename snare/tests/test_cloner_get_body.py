@@ -5,7 +5,7 @@ import sys
 import os
 import shutil
 import asyncio
-from snare.cloner import Cloner
+from snare.cloner import CloneRunner
 from snare.utils.asyncmock import AsyncMock
 from snare.utils.page_path_generator import generate_unique_path
 
@@ -19,7 +19,7 @@ class TestGetBody(unittest.TestCase):
         self.max_depth = sys.maxsize
         self.loop = asyncio.new_event_loop()
         self.css_validate = False
-        self.handler = Cloner(self.root, self.max_depth, self.css_validate)
+        self.handler = CloneRunner(self.root, self.max_depth, self.css_validate)
         self.target_path = "/opt/snare/pages/{}".format(yarl.URL(self.root).host)
         self.return_content = None
         self.expected_content = None
@@ -52,7 +52,9 @@ class TestGetBody(unittest.TestCase):
 
         aiohttp.ClientResponse._headers = {"Content-Type": "text/html"}
         aiohttp.ClientResponse.read = AsyncMock(return_value=self.content)
-        self.filename, self.hashname = self.handler._make_filename(yarl.URL(self.root))
+        if not self.handler.runner:
+            raise Exception("Error initializing Cloner!")
+        self.filename, self.hashname = self.handler.runner._make_filename(yarl.URL(self.root))
         self.expected_content = '<html><body><a href="/test"></a></body></html>'
 
         self.meta = {
@@ -67,8 +69,10 @@ class TestGetBody(unittest.TestCase):
         }
 
         async def test():
-            await self.handler.new_urls.put((yarl.URL(self.root), 0))
-            await self.handler.get_body(self.session)
+            if not self.handler.runner:
+                raise Exception("Error initializing Cloner!")
+            await self.handler.runner.new_urls.put({"url": yarl.URL(self.root), "level": 0, "try_count": 0})
+            await self.handler.runner.get_body(self.session)
 
         with self.assertLogs(level="DEBUG") as log:
             self.loop.run_until_complete(test())
@@ -79,16 +83,16 @@ class TestGetBody(unittest.TestCase):
 
         self.assertEqual(self.return_content, self.expected_content)
         self.assertEqual(
-            self.handler.visited_urls[-2:],
+            self.handler.runner.visited_urls[-2:],
             ["http://example.com/", "http://example.com/test"],
         )
-        self.assertEqual(self.handler.meta, self.meta)
+        self.assertEqual(self.handler.runner.meta, self.meta)
 
     def test_get_body_css_validate(self):
         aiohttp.ClientResponse._headers = {"Content-Type": "text/css"}
 
         self.css_validate = True
-        self.handler = Cloner(self.root, self.max_depth, self.css_validate)
+        self.handler = CloneRunner(self.root, self.max_depth, self.css_validate)
         self.content = b""".banner { background: url("/example.png") }"""
         aiohttp.ClientResponse.read = AsyncMock(return_value=self.content)
         self.expected_content = "http://example.com/example.png"
@@ -105,21 +109,26 @@ class TestGetBody(unittest.TestCase):
         }
 
         async def test():
-            await self.handler.new_urls.put((yarl.URL(self.root), 0))
-            await self.handler.get_body(self.session)
-            self.q_size = self.handler.new_urls.qsize()
+            if not self.handler.runner:
+                raise Exception("Error initializing Cloner!")
+            await self.handler.runner.new_urls.put({"url": yarl.URL(self.root), "level": 0, "try_count": 0})
+            await self.handler.runner.get_body(self.session)
+            self.q_size = self.handler.runner.new_urls.qsize()
+
+        if not self.handler.runner:
+            raise Exception("Error initializing Cloner!")
 
         self.loop.run_until_complete(test())
-        self.assertEqual(self.handler.visited_urls[-1], self.expected_content)
+        self.assertEqual(self.handler.runner.visited_urls[-1], self.expected_content)
         self.assertEqual(self.q_size, self.return_size)
-        self.assertEqual(self.meta, self.handler.meta)
+        self.assertEqual(self.meta, self.handler.runner.meta)
 
     def test_get_body_css_validate_scheme(self):
         aiohttp.ClientResponse._headers = {"Content-Type": "text/css"}
 
         self.css_validate = True
         self.return_size = 0
-        self.handler = Cloner(self.root, self.max_depth, self.css_validate)
+        self.handler = CloneRunner(self.root, self.max_depth, self.css_validate)
         self.content = [
             b""".banner { background: url("data://domain/test.txt") }""",
             b""".banner { background: url("file://domain/test.txt") }""",
@@ -134,23 +143,30 @@ class TestGetBody(unittest.TestCase):
         self.expected_content = "http://example.com/"
 
         async def test():
-            await self.handler.new_urls.put((yarl.URL(self.root), 0))
-            await self.handler.get_body(self.session)
-            self.q_size = self.handler.new_urls.qsize()
+            if not self.handler.runner:
+                raise Exception("Error initializing Cloner!")
+            await self.handler.runner.new_urls.put({"url": yarl.URL(self.root), "level": 0, "try_count": 0})
+            await self.handler.runner.get_body(self.session)
+            self.q_size = self.handler.runner.new_urls.qsize()
+
+        if not self.handler.runner:
+            raise Exception("Error initializing Cloner!")
 
         for content in self.content:
             aiohttp.ClientResponse.read = AsyncMock(return_value=content)
             self.loop.run_until_complete(test())
             self.assertEqual(self.return_size, self.q_size)
-            self.assertEqual(self.handler.meta, self.meta)
-            self.assertEqual(self.handler.visited_urls[-1], self.expected_content)
+            self.assertEqual(self.handler.runner.meta, self.meta)
+            self.assertEqual(self.handler.runner.visited_urls[-1], self.expected_content)
 
     def test_client_error(self):
         self.session.get = AsyncMock(side_effect=aiohttp.ClientError)
 
         async def test():
-            await self.handler.new_urls.put((yarl.URL(self.root), 0))
-            await self.handler.get_body(self.session)
+            if not self.handler.runner:
+                raise Exception("Error initializing Cloner!")
+            await self.handler.runner.new_urls.put({"url": yarl.URL(self.root), "level": 0, "try_count": 0})
+            await self.handler.runner.get_body(self.session)
 
         with self.assertLogs(level="ERROR") as log:
             self.loop.run_until_complete(test())

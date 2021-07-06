@@ -1,18 +1,21 @@
 import unittest
 import sys
-from snare.cloner import Cloner
+from snare.cloner import CloneRunner
 import shutil
 
 
-class TestClonerInitialization(unittest.TestCase):
+class TestCloneRunnerInitialization(unittest.TestCase):
     def setUp(self):
         self.root = "http://example.com"
         self.max_depth = sys.maxsize
         self.css_validate = False
-        self.handler = Cloner(self.root, self.max_depth, self.css_validate, default_path="/tmp")
+        self.handler = CloneRunner(self.root, self.max_depth, self.css_validate, default_path="/tmp")
 
     def test_cloner_init(self):
-        self.assertIsInstance(self.handler, Cloner)
+        self.assertIsInstance(self.handler, CloneRunner)
 
     def tearDown(self):
-        shutil.rmtree(self.handler.target_path)
+        if self.handler.runner:
+            shutil.rmtree(self.handler.runner.target_path)
+        else:
+            raise Exception("Error initializing Cloner")
