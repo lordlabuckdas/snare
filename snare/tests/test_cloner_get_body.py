@@ -172,5 +172,17 @@ class TestGetBody(unittest.TestCase):
             self.loop.run_until_complete(test())
             self.assertIn("ERROR:snare.cloner:", "".join(log.output))
 
+    def test_try_count(self):
+        async def test():
+            if not self.handler.runner:
+                raise Exception("Error initializing Cloner!")
+            await self.handler.runner.new_urls.put({"url": yarl.URL(self.root), "level": 0, "try_count": 3})
+            await self.handler.runner.get_body(None)
+
+        if not self.handler.runner:
+            raise Exception("Error initializing Cloner!")
+        self.loop.run_until_complete(test())
+        self.assertFalse(self.root in self.handler.runner.visited_urls)
+
     def tearDown(self):
         shutil.rmtree(self.main_page_path)

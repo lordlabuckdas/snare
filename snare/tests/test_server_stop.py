@@ -32,7 +32,7 @@ class TestServerStop(unittest.TestCase):
         self.loop = asyncio.new_event_loop()
 
     def test_handler_stop(self):
-        self.handler.runner = AsyncMock()
+        self.handler = AsyncMock()
 
         async def test():
             await self.handler.stop()

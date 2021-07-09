@@ -15,11 +15,21 @@ class TestCloneRunnerRun(unittest.TestCase):
         self.root = "http://example.com"
         self.max_depth = sys.maxsize
         self.css_validate = False
-        self.handler = CloneRunner(self.root, self.max_depth, self.css_validate, default_path="/tmp")
         self.loop = asyncio.new_event_loop()
 
-    def test_run(self):
+    def test_simple_cloner_run(self):
+        self.handler = CloneRunner(self.root, self.max_depth, self.css_validate, default_path="/tmp")
         self.loop.run_until_complete(self.handler.run())
+
+    def test_headless_cloner_run(self):
+        self.handler = CloneRunner(self.root, self.max_depth, self.css_validate, default_path="/tmp", headless=True)
+        self.loop.run_until_complete(self.handler.run())
+
+    def test_no_cloner_run(self):
+        self.handler = CloneRunner(self.root, self.max_depth, self.css_validate, default_path="/tmp", headless=True)
+        self.handler.runner = None
+        with self.assertRaises(Exception):
+            self.loop.run_until_complete(self.handler.run())
 
     def tearDown(self):
         shutil.rmtree(self.main_page_path)
