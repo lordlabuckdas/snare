@@ -15,15 +15,37 @@ class TestHandleHtmlContent(unittest.TestCase):
         self.content = """
                           <html>
                                 <body>
-                                <p style="color:red;">A paragraph to be tested</p>
+                                <p>A <p style="color:red;">paragraph to</p> be tested</p>
                                 </body>
                           </html>
                        """
-        self.expected_content = '<html>\n <body>\n  <p style="color: red">\n'
-        self.expected_content += '   <a href="test_dork1" style="color:red;text-decoration:none;cursor:text;">\n'
-        self.expected_content += "    A\n   </a>\n   paragraph to be tested\n  </p>\n </body>\n</html>\n"
-        self.no_dorks_content = '<html>\n <body>\n  <p style="color:red;">\n   A paragraph to be tested\n'
-        self.no_dorks_content += "  </p>\n </body>\n</html>\n"
+        self.expected_content = """<html>
+ <body>
+  <p>
+   A
+   <p style="color: red">
+    <a href="test_dork1" style="color:red;text-decoration:none;cursor:text;">
+     paragraph
+    </a>
+    to
+   </p>
+   be tested
+  </p>
+ </body>
+</html>
+"""
+        self.no_dorks_content = """<html>
+ <body>
+  <p>
+   A
+   <p style="color:red;">
+    paragraph to
+   </p>
+   be tested
+  </p>
+ </body>
+</html>
+"""
         self.loop = asyncio.new_event_loop()
         self.return_content = None
         no_dorks = True
@@ -40,6 +62,7 @@ class TestHandleHtmlContent(unittest.TestCase):
         self.loop.run_until_complete(test())
         soup = BeautifulSoup(self.return_content, "html.parser")
         return_content = soup.decode("utf-8")
+        print(return_content)
         self.assertEqual(return_content, self.expected_content)
 
     def test_handle_content_no_dorks(self):
@@ -51,6 +74,7 @@ class TestHandleHtmlContent(unittest.TestCase):
         self.loop.run_until_complete(test())
         soup = BeautifulSoup(self.return_content, "html.parser")
         self.return_content = soup.decode("utf-8")
+        print(self.return_content)
         self.assertEqual(self.return_content, self.no_dorks_content)
 
     def test_handle_content_exception(self):
